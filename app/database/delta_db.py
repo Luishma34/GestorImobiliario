@@ -7,7 +7,6 @@ from deltalake import write_deltalake, DeltaTable
 from deltalake.exceptions import TableNotFoundError
 import pyarrow.dataset as ds
 
-
 class DeltaDatabase:
     def __init__(self, table_name: str, base_path: str = "./data"):
         self.table_name = table_name
@@ -59,15 +58,49 @@ class DeltaDatabase:
         return record_id
 
     def get(self, record_id: int) -> Optional[Dict[str, Any]]:
-        ###GET ta com problemaaaa to resolvendo sa merda
         try:
-            dataset = ds.dataset(self.table_path, format="delta")
-            result_table = dataset.to_table(filter=ds.field("id") == record_id)
+            dt = DeltaTable(self.table_path)
+
+
+            dataset = dt.to_pyarrow_dataset()
+
+            filter_expression = ds.field("id") == record_id
+
+            result_table = dataset.to_table(filter=filter_expression)
+
             if result_table.num_rows > 0:
                 return {key: value[0] for key, value in result_table.to_pydict().items()}
             return None
-        except (TableNotFoundError, FileNotFoundError):
+        except (TableNotFoundError, FileNotFoundError, pa.ArrowInvalid):
             return None
+
+    def list(self, offset: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+
+        try:
+            dt = DeltaTable(self.table_path)
+
+            reader = dt.to_pyarrow_dataset().scanner().to_reader()
+
+            rows_in_page = []
+            rows_seen = 0
+            for batch in reader:
+                if rows_seen < offset + limit:
+                    batch_data = batch.to_pylist()
+
+                    start_index = max(0, offset - rows_seen)
+                    end_index = min(len(batch_data), offset + limit - rows_seen)
+
+                    rows_in_page.extend(batch_data[start_index:end_index])
+
+                rows_seen += len(batch)
+
+                if len(rows_in_page) >= limit:
+                    break
+
+            return rows_in_page
+
+        except (TableNotFoundError, FileNotFoundError):
+            return []
 
     def update(self, record_id: int, data: Dict[str, Any]) -> bool:
         pass
