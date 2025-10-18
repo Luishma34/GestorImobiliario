@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.routes import imovel
+from app.api import imovel
 
 app = FastAPI(
     title="Gestor Imobiliário API",

@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from typing import List
 from fastapi import APIRouter, status, Query
 from app.models import Imovel, ImovelCreate, ImovelUpdate
