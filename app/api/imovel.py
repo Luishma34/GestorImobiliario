@@ -1,6 +1,6 @@
-from http.client import HTTPException
+
 from typing import List
-from fastapi import APIRouter, status, Query
+from fastapi import APIRouter, status, Query, HTTPException
 from app.models import Imovel, ImovelCreate, ImovelUpdate
 from app.database import DeltaDatabase
 
@@ -19,13 +19,15 @@ def criar_imovel(imovel: ImovelCreate):
 
 @router.get("/", response_model=List[Imovel])
 def listar_imoveis(
-    pagina: int = Query(1, ge=1),
-    registrosPorPagina: int = Query(10, ge=1)
+    pagina: int = Query(1, ge=1, description="Número da página"),
+    registrosPorPagina: int = Query(10, ge=1, description="Quantidade de registros por página")
 ):
     """
-    TODO: Implementar listagem com paginação
+    IMPLEMENTAÇÃO: Lista todos os imóveis com paginação.
     """
-    pass
+    offset = (pagina - 1) * registrosPorPagina
+    imoveis = db.list(offset=offset, limit=registrosPorPagina)
+    return imoveis
 
 
 @router.get("/{imovel_id}", response_model=Imovel)
@@ -37,8 +39,7 @@ def buscar_imovel(imovel_id: int):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Imóvel com ID {imovel_id} não encontrado"
         )
-    imovel_formatado = {key: value[0] for key, value in imovel_data.items()}
-    return Imovel(**imovel_formatado)
+    return Imovel(**imovel_data)
 
 @router.put("/{imovel_id}", response_model=Imovel)
 def atualizar_imovel(imovel_id: int, imovel: ImovelUpdate):
