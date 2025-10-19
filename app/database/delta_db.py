@@ -53,26 +53,26 @@ class DeltaDatabase:
         try:
             write_deltalake(self.table_path, pa_table, mode="append")
         except TableNotFoundError:
-            write_deltalake(self.table_path, pa_table, mode="overwrite", schema=self.schema)
+            write_deltalake(self.table_path, pa_table, mode="overwrite", schema=self.schema, configuration={"delta.enableChangeDataFeed": "true"})
 
         return record_id
 
     def get(self, record_id: int) -> Optional[Dict[str, Any]]:
         try:
             dt = DeltaTable(self.table_path)
-
-
+            
             dataset = dt.to_pyarrow_dataset()
-
-            filter_expression = ds.field("id") == record_id
-
-            result_table = dataset.to_table(filter=filter_expression)
-
+            
+            result_table = dataset.to_table(filter=ds.field("id") == record_id)
+            
             if result_table.num_rows > 0:
-                return {key: value[0] for key, value in result_table.to_pydict().items()}
-            return None
-        except (TableNotFoundError, FileNotFoundError, pa.ArrowInvalid):
-            return None
+                py_dict = result_table.to_pydict()
+                return {key: value[0] for key, value in py_dict.items()}
+        except Exception as e:
+            print(f"Ocorreu um erro inesperado ao buscar o registro {record_id}: {e}")
+
+        return None
+       
 
     def list(self, offset: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
 
@@ -103,10 +103,85 @@ class DeltaDatabase:
             return []
 
     def update(self, record_id: int, data: Dict[str, Any]) -> bool:
-        pass
+        try:
+            dt = DeltaTable(self.table_path)
+            
+            result_metrics = dt.update(
+                new_values=data,
+                predicate=f"id = {record_id}"
+            )
+
+            if result_metrics.get('num_updated_rows', 0) > 0:
+                return True
+            else:
+                return False
+
+        except TableNotFoundError:
+            return False
+        except Exception as e:
+            print(f"Erro inesperado ao atualizar o registro {record_id}: {e}")
+            raise e
+
 
     def delete(self, record_id: int) -> bool:
-        pass
+        try:
+            dt = DeltaTable(self.table_path)
+            
+            result_metrics = dt.delete(predicate=f"id = {record_id}")
+
+            if result_metrics.get('num_deleted_rows', 0) > 0:
+                return True
+            else:
+                return False
+
+        except TableNotFoundError:
+            return False
+        except Exception as e:
+            print(f"Erro inesperado ao deletar o registro {record_id}: {e}")
+            raise e
 
     def count(self) -> int:
-        pass
+        try:
+            dt = DeltaTable(self.table_path)
+            return dt.to_pyarrow_dataset().count_rows()
+        except TableNotFoundError:
+            return 0
+        except Exception as e:
+            print(f"Erro inesperado ao contar os registros: {e}")
+            raise e
+        
+    def insert_batch(self, data_list: List[Dict[str, Any]]) -> List[int]:
+        if not data_list:
+            return []
+        
+        record_ids = []
+        records_with_ids = []
+        
+        for data in data_list:
+            record_id = self._get_next_id()
+            record_ids.append(record_id)
+            records_with_ids.append({"id": record_id, **data})
+        
+        columns_data = {}
+        for key in self.schema.names:
+            columns_data[key] = [record.get(key) for record in records_with_ids]
+        
+        pa_table = pa.Table.from_pydict(columns_data, schema=self.schema)
+        
+        try:
+            write_deltalake(self.table_path, pa_table, mode="append")
+        except TableNotFoundError:
+            write_deltalake(self.table_path, pa_table, mode="overwrite", schema=self.schema, configuration={"delta.enableChangeDataFeed": "true"})
+        
+        return record_ids
+    
+    def vacuum(self) -> List[str]:
+        try:
+            dt = DeltaTable(self.table_path)
+            files_deleted = dt.vacuum(retention_hours=0, enforce_retention_duration=False)
+            return files_deleted
+        except TableNotFoundError:
+            return []
+        except Exception as e:
+            print(f"Erro inesperado ao executar o vacuum na tabela: {e}")
+            raise e

@@ -30,4 +30,11 @@ uvicorn app.main:app --reload
 
 ### 5. Acessar documentação
 - http://localhost:8000/docs
+- caso estiver usando wsl: http://127.0.0.1:8000/docs
+
+### 6. Popular o Banco
+```bash
+#pode ser python3 ao invés de python
+python populate_db.py
+```
 
