@@ -4,4 +4,4 @@ uvicorn[standard]==0.24.0
 pydantic==2.5.0
 
 # Delta Lake
-deltalake==0.14.0
+deltalake==1.2.0

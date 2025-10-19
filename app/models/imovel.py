@@ -16,7 +16,7 @@ class ImovelCreate(ImovelBase):
     pass
 
 
-class ImovelUpdate(BaseModel):
+class ImovelUpdate(ImovelBase):
     pass
 
 
