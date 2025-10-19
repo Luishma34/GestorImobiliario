@@ -7,7 +7,6 @@ from deltalake import write_deltalake, DeltaTable
 from deltalake.exceptions import TableNotFoundError
 import pyarrow.dataset as ds
 
-
 class DeltaDatabase:
     def __init__(self, table_name: str, base_path: str = "./data"):
         self.table_name = table_name
@@ -74,6 +73,34 @@ class DeltaDatabase:
 
         return None
         
+
+    def list(self, offset: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+
+        try:
+            dt = DeltaTable(self.table_path)
+
+            reader = dt.to_pyarrow_dataset().scanner().to_reader()
+
+            rows_in_page = []
+            rows_seen = 0
+            for batch in reader:
+                if rows_seen < offset + limit:
+                    batch_data = batch.to_pylist()
+
+                    start_index = max(0, offset - rows_seen)
+                    end_index = min(len(batch_data), offset + limit - rows_seen)
+
+                    rows_in_page.extend(batch_data[start_index:end_index])
+
+                rows_seen += len(batch)
+
+                if len(rows_in_page) >= limit:
+                    break
+
+            return rows_in_page
+
+        except (TableNotFoundError, FileNotFoundError):
+            return []
 
     def update(self, record_id: int, data: Dict[str, Any]) -> bool:
         try:
