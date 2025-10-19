@@ -73,7 +73,7 @@ class DeltaDatabase:
             print(f"Ocorreu um erro inesperado ao buscar o registro {record_id}: {e}")
 
         return None
-       
+        
 
     def update(self, record_id: int, data: Dict[str, Any]) -> bool:
         try:
@@ -147,7 +147,21 @@ class DeltaDatabase:
             write_deltalake(self.table_path, pa_table, mode="overwrite", schema=self.schema, configuration={"delta.enableChangeDataFeed": "true"})
         
         return record_ids
-    
+
+    def get_all_as_arrow_table(self) -> pa.Table:
+        """
+        Retorna a tabela Delta inteira como um objeto pyarrow.Table.
+        """
+        try:
+            dt = DeltaTable(self.table_path)
+            return dt.to_pyarrow_table()
+        except TableNotFoundError:
+            print("Tabela não encontrada, retornando tabela vazia.")
+            return pa.Table.from_pydict({}, schema=self.schema)
+        except Exception as e:
+            print(f"Erro ao ler a tabela delta: {e}")
+            return pa.Table.from_pydict({}, schema=self.schema)
+
     def vacuum(self) -> List[str]:
         try:
             dt = DeltaTable(self.table_path)
