@@ -5,3 +5,6 @@ pydantic==2.5.0
 
 # Delta Lake
 deltalake==1.2.0
+
+# População de dados
+faker==25.2.0

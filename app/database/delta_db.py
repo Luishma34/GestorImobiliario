@@ -123,6 +123,31 @@ class DeltaDatabase:
             print(f"Erro inesperado ao contar os registros: {e}")
             raise e
         
+    def insert_batch(self, data_list: List[Dict[str, Any]]) -> List[int]:
+        if not data_list:
+            return []
+        
+        record_ids = []
+        records_with_ids = []
+        
+        for data in data_list:
+            record_id = self._get_next_id()
+            record_ids.append(record_id)
+            records_with_ids.append({"id": record_id, **data})
+        
+        columns_data = {}
+        for key in self.schema.names:
+            columns_data[key] = [record.get(key) for record in records_with_ids]
+        
+        pa_table = pa.Table.from_pydict(columns_data, schema=self.schema)
+        
+        try:
+            write_deltalake(self.table_path, pa_table, mode="append")
+        except TableNotFoundError:
+            write_deltalake(self.table_path, pa_table, mode="overwrite", schema=self.schema, configuration={"delta.enableChangeDataFeed": "true"})
+        
+        return record_ids
+    
     def vacuum(self) -> List[str]:
         try:
             dt = DeltaTable(self.table_path)
