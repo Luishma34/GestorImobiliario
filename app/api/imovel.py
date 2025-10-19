@@ -19,13 +19,15 @@ def criar_imovel(imovel: ImovelCreate):
 
 @router.get("/", response_model=List[Imovel])
 def listar_imoveis(
-    pagina: int = Query(1, ge=1),
-    registrosPorPagina: int = Query(10, ge=1)
+    pagina: int = Query(1, ge=1, description="Número da página"),
+    registrosPorPagina: int = Query(10, ge=1, description="Quantidade de registros por página")
 ):
     """
-    TODO: Implementar listagem com paginação
+    IMPLEMENTAÇÃO: Lista todos os imóveis com paginação.
     """
-    pass
+    offset = (pagina - 1) * registrosPorPagina
+    imoveis = db.list(offset=offset, limit=registrosPorPagina)
+    return imoveis
 
 @router.get("/total", response_model=dict)
 def total_cadastrados():
