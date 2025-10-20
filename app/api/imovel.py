@@ -31,22 +31,9 @@ def listar_imoveis(
     """
     try:
         offset = (pagina - 1) * registrosPorPagina
-        
-        pa_table = db.get_all_as_arrow_table()
 
-        if pa_table.num_rows == 0:
-            return []
-            
-        if offset >= pa_table.num_rows:
-            return [] 
-
-        paginated_table = pa_table.slice(offset, registrosPorPagina)
-        records_dict = paginated_table.to_pydict()
-
-        keys = records_dict.keys()
-        list_of_dicts = [dict(zip(keys, t)) for t in zip(*records_dict.values())]
-
-        return list_of_dicts
+        imoveis = db.list(offset=offset, limit=registrosPorPagina)
+        return imoveis
 
     except Exception as e:
         raise HTTPException(
