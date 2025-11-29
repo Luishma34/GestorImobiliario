@@ -9,18 +9,22 @@ ENV/
 env/
 .venv
 
+# UV
+.uv/
+uv.lock
+
 # Database
-data/
-*.seq
+#data/
+#*.seq
+#*.db
+#*.sqlite
+#*.sqlite3
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Environment
-.env
 
 # Tests
 .pytest_cache/

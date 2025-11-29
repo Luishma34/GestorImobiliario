@@ -1,3 +1,3 @@
-from .delta_db import DeltaDatabase
+from .database import engine, get_session, create_db_and_tables
 
-__all__ = ["DeltaDatabase"]
+__all__ = ["engine", "get_session", "create_db_and_tables"]
