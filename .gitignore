@@ -19,6 +19,7 @@ uv.lock
 #*.db
 #*.sqlite
 #*.sqlite3
+gestor_imobiliario.db
 
 # IDE
 .vscode/
