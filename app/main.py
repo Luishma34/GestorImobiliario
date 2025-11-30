@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.api import imovel, inquilino, contrato,proprietario
+from app.api import imovel, inquilino, contrato, proprietario, relatorios
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,6 +18,8 @@ app.include_router(imovel.router)
 app.include_router(inquilino.router)
 app.include_router(contrato.router)
 app.include_router(proprietario.router)
+# Adicionado router do Membro 3
+app.include_router(relatorios.router)
 
 @app.get("/")
 def root():
