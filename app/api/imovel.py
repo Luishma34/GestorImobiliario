@@ -3,9 +3,15 @@ from sqlalchemy.orm import joinedload
 from sqlmodel import Session, select, func
 from app.models import Imovel, ImovelCreate, ImovelUpdate, ImovelPublic
 from app.database import get_session
+from enum import Enum
 
 router = APIRouter(prefix="/imoveis", tags=["Imóveis"])
 
+class OrdemImovel(str, Enum):
+    padrao = "id"
+    valor_crescente = "valor_menor"
+    valor_decrescente = "valor_maior"
+    bairro = "endereco"
 
 @router.post("/", response_model=ImovelPublic, status_code=status.HTTP_201_CREATED)
 def criar_imovel(imovel: ImovelCreate, session: Session = Depends(get_session)):
@@ -24,14 +30,15 @@ def listar_imoveis(
         registros_por_pagina: int = Query(10, ge=1, le=100),
         bairro: str | None = Query(None, description="Filtrar por parte do endereço"),
         status_imovel: str | None = Query(None, description="Filtrar por status"),
-        id_proprietario: int | None = Query(None, description="Filtrar por proprietário")
+        id_proprietario: int | None = Query(None, description="Filtrar por proprietário"),
+        ordenar_por: OrdemImovel = Query(OrdemImovel.padrao, description="Critério de ordenação")
 ):
     """
-    Lista imóveis com Eager Loading (Traz o proprietário na mesma consulta).
+    Lista imóveis com filtros e ordenação (Membro 3).
     """
     offset = (pagina - 1) * registros_por_pagina
 
-    # Isso faz um LEFT JOIN no  proprietário em 1 roundtrip.
+    # Eager loading
     statement = select(Imovel).options(joinedload(Imovel.proprietario))
 
     # Filtros Dinâmicos
@@ -43,6 +50,17 @@ def listar_imoveis(
 
     if id_proprietario:
         statement = statement.where(Imovel.id_proprietario == id_proprietario)
+
+    # Ordenação (Membro 3)
+    if ordering_criterio := ordenar_por:
+        if ordering_criterio == OrdemImovel.valor_crescente:
+            statement = statement.order_by(Imovel.valor_aluguel_base.asc())
+        elif ordering_criterio == OrdemImovel.valor_decrescente:
+            statement = statement.order_by(Imovel.valor_aluguel_base.desc())
+        elif ordering_criterio == OrdemImovel.bairro:
+            statement = statement.order_by(Imovel.endereco.asc())
+        else:
+            statement = statement.order_by(Imovel.id.asc())
 
     statement = statement.offset(offset).limit(registros_por_pagina)
     imoveis = session.exec(statement).all()
