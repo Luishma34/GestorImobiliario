@@ -1,7 +1,6 @@
-from typing import List
 from fastapi import APIRouter, status, Query, HTTPException, Depends
+from sqlalchemy.orm import joinedload
 from sqlmodel import Session, select, func
-
 from app.models import Imovel, ImovelCreate, ImovelUpdate, ImovelPublic
 from app.database import get_session
 
@@ -18,17 +17,34 @@ def criar_imovel(imovel: ImovelCreate, session: Session = Depends(get_session)):
     return db_imovel
 
 
-@router.get("/", response_model=List[ImovelPublic])
+@router.get("/", response_model=list[ImovelPublic])
 def listar_imoveis(
-    pagina: int = Query(1, ge=1, description="Número da página"),
-    registrosPorPagina: int = Query(10, ge=1, le=100, description="Quantidade de registros por página"),
-    session: Session = Depends(get_session)
+        session: Session = Depends(get_session),
+        pagina: int = Query(1, ge=1),
+        registros_por_pagina: int = Query(10, ge=1, le=100),
+        bairro: str | None = Query(None, description="Filtrar por parte do endereço"),
+        status_imovel: str | None = Query(None, description="Filtrar por status"),
+        id_proprietario: int | None = Query(None, description="Filtrar por proprietário")
 ):
     """
-    Retorna uma página de imóveis cadastrados.
+    Lista imóveis com Eager Loading (Traz o proprietário na mesma consulta).
     """
-    offset = (pagina - 1) * registrosPorPagina
-    statement = select(Imovel).offset(offset).limit(registrosPorPagina)
+    offset = (pagina - 1) * registros_por_pagina
+
+    # Isso faz um LEFT JOIN no  proprietário em 1 roundtrip.
+    statement = select(Imovel).options(joinedload(Imovel.proprietario))
+
+    # Filtros Dinâmicos
+    if bairro:
+        statement = statement.where(func.lower(Imovel.endereco).contains(bairro.lower()))
+
+    if status_imovel:
+        statement = statement.where(Imovel.status == status_imovel)
+
+    if id_proprietario:
+        statement = statement.where(Imovel.id_proprietario == id_proprietario)
+
+    statement = statement.offset(offset).limit(registros_por_pagina)
     imoveis = session.exec(statement).all()
     return imoveis
 
@@ -43,8 +59,10 @@ def total_cadastrados(session: Session = Depends(get_session)):
 
 @router.get("/{imovel_id}", response_model=ImovelPublic)
 def buscar_imovel(imovel_id: int, session: Session = Depends(get_session)):
-    """Busca um imóvel pelo seu ID."""
-    imovel = session.get(Imovel, imovel_id)
+    """Busca um imóvel e seus relacionamentos de uma vez."""
+    statement = select(Imovel).options(joinedload(Imovel.proprietario)).where(Imovel.id == imovel_id)
+    imovel = session.exec(statement).first()
+
     if not imovel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
