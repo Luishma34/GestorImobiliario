@@ -1,0 +1,17 @@
+MEMBRO 1 (Luis Henrique Magalhães de Araujo):
+- Configuração do Ambiente (UV, Alembic, Database).
+- Modelagem das entidades e CRUD completo da entidade Imoveis.
+- Configuração inicial do Banco de Dados (Postgres/SQLite).
+
+MEMBRO 2 (Aaron Gibran Moreira Monteiro):
+- Desenvolvimento do Core do sistema (Entidade Inquilino).
+- Implementação dos Relacionamentos  (N:N via Contrato).
+- Regras de Negócio (Validação de imóvel alugado).
+- Otimização das consultas.
+
+MEMBRO 3 (Paulo Gleidson Leitão Sampaio ):
+- Script de população do banco (populate_db.py) com dados realistas (Faker).
+- Implementação do módulo de Relatórios e Dashboard.
+- CRUD completo da entidade Inquilino.
+- Consultas complexas (Agregações, filtros por data, ordenação).
+- Documentação e revisão final.

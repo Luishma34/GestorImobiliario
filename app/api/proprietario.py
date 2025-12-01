@@ -26,7 +26,6 @@ def listar_proprietarios(
     offset = (pagina - 1) * registros_por_pagina
     statement = (
         select(Proprietario)
-        .options(selectinload(Proprietario.imoveis))
         .offset(offset)
         .limit(registros_por_pagina)
     )
