@@ -12,11 +12,7 @@ def create_fake_data():
     create_db_and_tables()
 
     with Session(engine) as session:
-        # 1. Verificar se já existem dados para não duplicar excessivamente
-        existing_props = session.exec(select(Proprietario)).first()
-        if existing_props:
-            print("O banco de dados já parece estar povoado. Pulando população.")
-            return
+
 
         print("Gerando dados realistas...")
 
@@ -73,6 +69,7 @@ def create_fake_data():
                 cpf=fake.cpf(),
                 email=fake.email(),
                 telefone=fake.phone_number(),
+                endereco_anterior=fake.address(),
                 renda_mensal=round(random.uniform(3000, 10000), 2)
             )
             session.add(inq)
@@ -84,7 +81,7 @@ def create_fake_data():
         for imovel in imoveis_alugados:
             inq = random.choice(inquilinos)
             data_inicio = fake.date_between(start_date='-1y', end_date='today')
-            data_fim = data_inicio + timedelta(days=365) # Contrato de 1 ano
+            data_fim = data_inicio + timedelta(days=365)
             
             contrato = Contrato(
                 id_inquilino=inq.id,
